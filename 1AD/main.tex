@@ -1,0 +1,128 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+% Basic link styling for readability.
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\title{DD2434 Advanced Machine Learning\\Assignment 1AD}
+\author{Reuben Gezang}
+\date{November 2025}
+
+\begin{document}
+
+\maketitle
+
+
+
+\section*{D-Level}
+\subsection*{Theory 1.D.1}
+\subsubsection*{Question 1.1.1}
+We start by stating the definition of the Kullback-Leibler divergence:
+\begin{equation}
+KL(q(Z) \| p(Z|X)) = \mathbb{E}_{q(\boldsymbol{Z})}[\log( \frac{q(Z)}{p(Z|X)})] = \int q(Z) \log( \frac{q(Z)}{p(Z|X)}) dZ
+\end{equation}
+Now we separete the fraction inside the logarithm:
+\begin{equation}
+KL(q(Z) \| p(Z|X)) = \int q(Z) \log( \frac{q(Z)p(X)}{p(X,Z)}) dZ = \int q(Z) (\log(q(Z)) - \log(p(Z|X)) dZ
+\end{equation}
+Note that $p(Z|X) = \frac{p(X,Z)}{p(X)}$ and using this we can rewrite the equation as:
+\begin{equation}
+KL(q(Z) \| p(Z|X)) = \int q(Z) \log(q(Z)) dZ - \int q(Z) \log(p(X,Z)) dZ + \log(p(X)) \int q(Z) dZ
+\end{equation}
+Since $q(Z)$ is a probability distribution, we know that $\int q(Z) dZ = 1$. Now we can solve for $\log(p(X))$:
+\begin{equation}
+\log(p(X)) = KL(q(Z) \| p(Z|X)) - \int q(Z) \log(q(Z)) dZ + \int q(Z) \log(p(X,Z)) dZ
+\end{equation}
+Combining the logarithm terms, we get:
+\begin{equation}
+\log(p(X)) = KL(q(Z) \| p(Z|X)) + \mathbb{E}_{q(\boldsymbol{Z})}[\frac{\log(p(X,Z))}{q(Z)}]
+\end{equation}
+Now we can identify the Evidence lower bound (ELBO)
+\begin{equation}
+\mathcal{L}(q) = \mathbb{E}_{q(\boldsymbol{Z})}[\frac{\log(p(X,Z))}{q(Z)}]
+\end{equation}
+and with this we have shown that:
+\begin{equation}
+\log(p(X)) = \mathcal{L}(q) + KL(q(Z) \| p(Z|X))
+\end{equation}
+concluding the proof.
+\subsubsection*{Question 1.1.2}
+KOLLA ÖVER IGEN
+In this question we are to describe (in one sentence) how the choice of variational family $q(Z)$ affects
+\begin{itemize}
+  \item (i) The tightness of the ELBO
+  \item (ii) The accuracy of the posterior approximation
+\end{itemize}
+(i) A more expressive variational family can lead to a tighter ELBO as it can better approximate the true posterior, reducing the KL divergence term.\\
+\\
+(ii) The choice of variational family directly impacts the accuracy of the posterior approximation, as a limited family may not capture the true posterior's complexity, leading to a less accurate approximation.
+\subsection*{Question 1.D.2}
+\subsubsection*{1.1.3}
+For a mean field assumption and joint distribution
+\begin{equation*}
+  q(Z_1, Z_2, Z_3) = q_1(Z_1)q_2(Z_2)q_3(Z_3), \quad p(X, Z)
+\end{equation*}
+Let $q^*_1(Z_1)$ be the $q_1$ that maximizes the ELBO. We want to show that $q_1^*$ satisfies
+\begin{equation*}
+  \log q_1^*(Z_1) = \mathbb{E}_{-Z_1}[\log p(X, Z)]
+\end{equation*}
+We can start by inspecting the ELBO:
+\begin{equation*}
+  \mathcal{L}(q) = \mathcal{L}(q) = \mathbb{E}_{q(\boldsymbol{Z})}[\frac{\log(p(X,Z))}{q(Z)}]=\mathbb{E}_{q}[\log p(X, Z)] - \mathbb{E}_{q}[\log q(Z)]
+\end{equation*}
+and using the mean field assumption we can rewrite this as:
+\begin{equation*}
+  \mathcal{L}(q) = \mathbb{E}_{q(Z)}[\log p(X, Z)] - \mathbb{E}_{q(Z)}[\log(q_1(Z_1)q_2(Z_2)q_3(Z_3))] 
+\end{equation*}
+and by separating the logarithm we get:
+\begin{equation*}
+  \mathbb{E}_{q(Z)}[\log(q_1(Z_1)q_2(Z_2)q_3(Z_3))] = \mathbb{E}_{q_1(Z_1)}[\log(q_1(Z_1))] + \mathbb{E}_{q_2(Z_2)}[\log(q_2(Z_2))] + \mathbb{E}_{q_3(Z_3)}[\log(q_3(Z_3))]
+\end{equation*}
+Since we are maximizing w.r.t $q_1(Z_1)$ we can ignore the terms that do not depend on it. Thus we can rewrite the ELBO as:
+\begin{equation*}
+  \mathcal{L}(q) = \mathbb{E}_{q(Z)}[\log p(X, Z)] - \mathbb{E}_{q_1(Z_1)}[\log(q_1(Z_1))] + C
+\end{equation*}
+where $C$ is a constant w.r.t $q_1(Z_1)$ (and can thus be ignored). Now we can rewrite the expectation over $q(Z)$ as:
+\begin{equation*}
+  \mathbb{E}_{q(Z)}[\log p(X, Z)] = \mathbb{E}_{q_1(Z_1)}[\mathbb{E}_{q_2(Z_2)q_3(Z_3)}[\log p(X, Z)]]
+\end{equation*}
+meaning that we can rewrite the ELBO as:
+\begin{equation*}
+  \mathcal{L}(q) = \mathbb{E}_{q_1(Z_1)}[\mathbb{E}_{q_2(Z_2)q_3(Z_3)}[\log p(X, Z)]] - \mathbb{E}_{q_1(Z_1)}[\log(q_1(Z_1))] + C
+\end{equation*}
+Using the fact that $\int_{Z_1} q(Z_1)dZ_1 = 1$ we will now optimize the ELBO w.r.t $q_1(Z_1)$ and with a lagrange multiplier $\lambda$.
+\begin{equation}
+  \frac{\partial}{\partial q_1(Z_1)} \left( \mathbb{E}_{q_1(Z_1)}[\mathbb{E}_{q_2(Z_2)q_3(Z_3)}[\log p(X, Z)]] - \mathbb{E}_{q_1(Z_1)}[\log(q_1(Z_1))] + \lambda (\int_{Z_1} q(Z_1)dZ_1 - 1) \right) = 0
+\end{equation}
+giving that
+\begin{equation}
+  \mathbb{E}_{q_2(Z_2)q_3(Z_3)}[\log p(X, Z)] - \log(q_1(Z_1)) - 1 + \lambda = 0 \rightarrow \log(q^*_1(Z_1)) = \mathbb{E}_{q_2(Z_2)q_3(Z_3)}[\log p(X, Z)] + \lambda - 1
+\end{equation}
+where $\lambda -1$ is a additive constant that can be ignored when normalizing $q_1^*(Z_1)$. Thus we have shown that:
+\begin{equation}
+  \log q_1^*(Z_1) = \mathbb{E}_{-Z_1}[\log p(X, Z)]
+\end{equation}
+as required.
+\subsection*{Practice/Implementation - D level (I have chosen 1.D.3)}
+\subsubsection*{1.2.4}
+The log likelihood of the data is:
+
+\appendix
+\section{Additional Details}
+Add derivations, extra figures, or ablation studies here.
+
+\end{document}
