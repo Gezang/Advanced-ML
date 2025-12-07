@@ -9,6 +9,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{hyperref}
+\usepackage{float}
 
 % Basic link styling for readability.
 \hypersetup{
@@ -82,13 +83,13 @@ Let $q^*_1(Z_1)$ be the $q_1$ that maximizes the ELBO. We want to show that $q_1
 \end{equation*}
 We can start by inspecting the ELBO:
 \begin{equation*}
-  \mathcal{L}(q) = \mathcal{L}(q) = \mathbb{E}_{q(\boldsymbol{Z})}[\frac{\log(p(X,Z))}{q(Z)}]=\mathbb{E}_{q}[\log p(X, Z)] - \mathbb{E}_{q}[\log q(Z)]
+  \mathcal{L}(q) = \mathcal{L}(q) = \mathbb{E}_{q(\boldsymbol{Z})}[\log(\frac{p(X,Z)}{q(Z)})]=\mathbb{E}_{q}[\log p(X, Z)] - \mathbb{E}_{q}[\log q(Z)]
 \end{equation*}
 and using the mean field assumption we can rewrite this as:
 \begin{equation*}
   \mathcal{L}(q) = \mathbb{E}_{q(Z)}[\log p(X, Z)] - \mathbb{E}_{q(Z)}[\log(q_1(Z_1)q_2(Z_2)q_3(Z_3))] 
 \end{equation*}
-and by separating the logarithm we get:
+and by separating the logarithm we get, and taking expectations over the relevant distribution ($z_i$ is independent of $z_j$ for $i \neq j$):
 \begin{equation*}
   \mathbb{E}_{q(Z)}[\log(q_1(Z_1)q_2(Z_2)q_3(Z_3))] = \mathbb{E}_{q_1(Z_1)}[\log(q_1(Z_1))] + \mathbb{E}_{q_2(Z_2)}[\log(q_2(Z_2))] + \mathbb{E}_{q_3(Z_3)}[\log(q_3(Z_3))]
 \end{equation*}
@@ -119,8 +120,91 @@ where $\lambda -1$ is a additive constant that can be ignored when normalizing $
 as required.
 \subsection*{Practice/Implementation - D level (I have chosen 1.D.3)}
 \subsubsection*{1.2.4}
-The log likelihood of the data is:
-
+The log likelihood of the data (D) is:
+\begin{equation}
+  \log(P(D|\mu, \tau)) = \frac{N}{2}\log(\tau)-\frac{N}{2}\log(2\pi) - \frac{\tau}{2}\sum_{i=1}^{N}(x_i - \mu)^2
+\end{equation}
+The log prior for $\mu$ and $\tau$ is: (Note that $\mu|\tau \sim \mathcal{N}(\mu_0, (\lambda_0\tau)^{-1})$ and $\tau \sim \text{Gamma}(a_0, b_0)$)
+\begin{equation}
+  \log(P(\mu, \tau)) = \frac{1}{2}\log(\lambda_0\tau) - \frac{1}{2}\log(2\pi) - \frac{\lambda_0\tau}{2}(\mu - \mu_0)^2 + a_0\log(b_0) - \log(\Gamma(a_0)) + (a_0 - 1)\log(\tau) - b_0\tau
+\end{equation}
+The log-variational distribution is (Where $q(\mu) \sim \mathcal{N}(\mu_N, \lambda_N^{-1})$ and $q(\tau) \sim \text{Gamma}(a_N, b_N)$):
+\begin{equation}
+  \log(q(\mu, \tau)) = \frac{1}{2}\log(\lambda_N) - \frac{1}{2}\log(2\pi) - \frac{\lambda_N}{2}(\mu - \mu_N)^2 + a_N\log(b_N) - \log(\Gamma(a_N)) + (a_N - 1)\log(\tau) - b_N\tau
+\end{equation}
+Finally we state the score functions of the variational distributions. Let $$\omega = (\mu_N, \lambda_N, a_N, b_N)$$ be the variational parameters.
+\begin{equation}
+  \nabla_{\omega}\log(q(\mu, \tau)) = \begin{bmatrix}
+  \lambda_N(\mu - \mu_N) \\
+  \frac{1}{2\lambda_N} - \frac{1}{2}(\mu - \mu_N)^2 \\
+  \psi(a_N) - \log(b_N) + \log(\tau) \\
+  \frac{a_N}{b_N} - \tau
+  \end{bmatrix}
+\end{equation}
+where $\psi$ is the digamma function.
+\subsubsection*{1.2.5}
+In this exercise we implement Algorithm 1 of the BBVI paper [Ranganath et al., 2014].
+We reuse the data sampling script from 1.E.3 and prior parameters, meaning that
+\begin{itemize}
+  \item $\mu_0 = 1.0$
+  \item $\lambda_0 = 0.1$
+  \item $a_0 = 1.0$
+  \item $b_0 = 2.0$
+\end{itemize}
+I have chosen to use the Robbins-monro sequence to be $\rho_t = \frac{1}{1000 + t}$ and the following plots show the ELBO over iterations and 
+the expected value of $\mu$ and $\tau$ over iterations for dataset 2 with 100 samples.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/ELBO_convergence_dataset2.png}
+  \caption{ELBO over iterations for dataset with 100 samples.}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/expected_mu_tau_convergence.png }
+  \caption{Expected value of $\mu$ and $\tau$ over iterations for dataset with 100 samples.}
+\end{figure}
+\section*{C-level}
+\subsection*{Theory 1.C.1}
+\subsubsection*{Question 2.1.10}
+For this exercise we want to show that that the IWELBO (Importance-Weighted ELBO) is a valid lower bound
+on the log marginal likelihood $\log p(X)$. First of, we state the IWELBO:
+\begin{equation}
+  \mathcal{L}_K(q) := \mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \log\left( \frac{1}{K} \sum_{k=1}^{K} \frac{p(X, Z_k)}{q(Z_k|X)}\right)\right]
+\end{equation}
+Now, note that we can rewrite the marginal likelihood as:
+\begin{equation*}
+  p(X) = \int p(X, Z) dZ = \int q(Z|X) \frac{p(X, Z)}{q(Z|X)} dZ = \mathbb{E}_{q(Z|X)}\left[\frac{p(X, Z)}{q(Z|X)}\right]
+\end{equation*}
+and we can extent this to $K$ samples:
+\begin{equation*}
+  p(X) = \mathbb{E}_{q(Z_{1}|X), \ldots, q(Z_{K}|X)}\left[\frac{1}{K} \sum_{k=1}^{K} \frac{p(X, Z_k)}{q(Z_k|X)}\right]
+\end{equation*}
+Now, by applying Jensen's inequality that says that for a concave function $f$ and random variable $X$, $\mathbb{E}[f(X)] \leq f(\mathbb{E}[X])$,
+(note that $\log$ is concave) we get:
+\begin{equation*}
+  \log p(X) = \log \left(\mathbb{E}_{q(Z_{1}|X), \ldots, q(Z_{K}|X)}\left[\frac{1}{K} \sum_{k=1}^{K} \frac{p(X, Z_k)}{q(Z_k|X)}\right]\right) \geq \mathbb{E}_{q(Z_{1}|X), \ldots, q(Z_{K}|X)}\left[\log\left( \frac{1}{K} \sum_{k=1}^{K} \frac{p(X, Z_k)}{q(Z_k|X)}\right)\right]
+\end{equation*}
+Thus, the IWELBO is a valid lower bound on the log marginal likelihood $\log p(X)$, as required.
+\sububsection*{2.1.11}
+Let $W_K = \frac{p(X,Z_K)}{q(Z_K|X)}$. The IWELBO can then be rewritten as:
+\begin{equation*}
+  \mathcal{L}_K(q) = \mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \log\left( \frac{1}{K} \sum_{k=1}^{K} W_k\right)\right]
+\end{equation*}
+We can also see that the standard ELBO can be rewritten as:
+\begin{equation*}
+  \mathcal{L}_1(q) = \mathbb{E}_{Z_{1}}\left[\ \log\left( W_1\right)\right] = \mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \frac{1}{K}\sum^K_{k=1}\log\left( W_k\right)\right]
+\end{equation*}
+This is because the $W_k$ are i.i.d. Now we can see that
+\begin{equation*}
+  \log\left(\frac{1}{K}\sum^K_{k=1} W_k \right)\geq \frac{1}{K}\sum^K_{k=1}\log\left( W_k\right)
+\end{equation*}
+This follows from the fact that the logarithm is strictly concave and according to Jensens inequality the logarithm of an average is greater than the average of the logaritms.
+Taking expectations of both sides, we get the final expression:
+\begin{equation*}
+  \mathcal{L}_K(q) = \mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \log\left( \frac{1}{K} \sum_{k=1}^{K} W_k\right)\right]\geq\mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \frac{1}{K}\sum^K_{k=1}\log\left( W_k\right)\right] = \mathcal{L}_1(q)
+\end{equation*}
+\subsection*{Theory 1.C.2}
+\subsubsection*{Question 2.1.12}
 \appendix
 \section{Additional Details}
 Add derivations, extra figures, or ablation studies here.
