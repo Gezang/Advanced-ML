@@ -9,3 +9,7 @@
 *.run.xml
 *.synctex.gz
 *.toc
+
+# Ignore project-specific directories
+Papers/
+1AD/_minted-main/

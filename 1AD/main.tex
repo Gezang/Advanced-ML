@@ -10,6 +10,8 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{float}
+\usepackage{minted}
+\usemintedstyle{friendly} % or "monokai", 
 
 % Basic link styling for readability.
 \hypersetup{
@@ -185,7 +187,7 @@ Now, by applying Jensen's inequality that says that for a concave function $f$ a
   \log p(X) = \log \left(\mathbb{E}_{q(Z_{1}|X), \ldots, q(Z_{K}|X)}\left[\frac{1}{K} \sum_{k=1}^{K} \frac{p(X, Z_k)}{q(Z_k|X)}\right]\right) \geq \mathbb{E}_{q(Z_{1}|X), \ldots, q(Z_{K}|X)}\left[\log\left( \frac{1}{K} \sum_{k=1}^{K} \frac{p(X, Z_k)}{q(Z_k|X)}\right)\right]
 \end{equation*}
 Thus, the IWELBO is a valid lower bound on the log marginal likelihood $\log p(X)$, as required.
-\sububsection*{2.1.11}
+\subsubsection*{2.1.11}
 Let $W_K = \frac{p(X,Z_K)}{q(Z_K|X)}$. The IWELBO can then be rewritten as:
 \begin{equation*}
   \mathcal{L}_K(q) = \mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \log\left( \frac{1}{K} \sum_{k=1}^{K} W_k\right)\right]
@@ -205,8 +207,207 @@ Taking expectations of both sides, we get the final expression:
 \end{equation*}
 \subsection*{Theory 1.C.2}
 \subsubsection*{Question 2.1.12}
-\appendix
-\section{Additional Details}
-Add derivations, extra figures, or ablation studies here.
+In this exercise we derive the Rao-Blackwellized partial gradient of the ELBO w.r.t $\lambda_3$.
+We have a total of $n+4$ latent variables, $v, z, y_n, \omega_1, \omega_2$. The variational distribution is given by:
+\begin{equation*}
+  q(w_1, w_2, z, v, y) = q_{\lambda_1}(w_1)q_{\lambda_2}(w_2)q_{\lambda_3}(z)q_{\lambda_4}(v) \prod_n q_{\lambda_{5, n}}(y_n).
+\end{equation*}
+The formula for the gradient of the ELBO w.r.t $\lambda_3$ is:
+\begin{equation*}
+  \nabla_{\lambda_3} \mathcal{L}(\lambda) = \mathbb{E}_{q(Z|X)}[\nabla_{\lambda_3} \log q_{\lambda_3}(z) (\log p_3(x, z) - \log q(z|\lambda_3))]
+\end{equation*}
+In this formula, as defined in the paper by Ranganath we have that $p_3(x,z)$ is the terms in the joint that depend
+on those variables. Meaning that 
+\begin{equation*}
+  p_3(x, z) = p(x|z,y_n)p(z|v)
+\end{equation*}
+This gives the final expression for the Rao-Blackwellized partial gradient of the ELBO w.r.t $\lambda_3$:
+\begin{equation*}
+  \nabla_{\lambda_3} \mathcal{L}(\lambda) = \mathbb{E}_{q(Z|X)}[\nabla_{\lambda_3} \log q_{\lambda_3}(z) (\log p(x|z,y_n) + \log p(z|v) - \log q_{\lambda_3}(z))]
+\end{equation*}
+\subsection*{Practice/implementation - 1.C.3}
+\subsubsection*{Question 2.2.13}
+To implement BBVI with Control variates, but without Rao-Blackwellization, we reuse the code from 1.D.5 and add control variates.
+We begin by calculating $f(z^{(s)}) = \log p(X, z^{(s)}) - \log q(z^{(s)}|\Theta)$ for each sample $s$.
+Next, we compute the score function for each sample $s$ and each variational parameter $\theta_j$.
+Then, we calculate the optimal baselines ($a^*$) (control variates) for each parameter and set the gradient estimate using the baseline ($a^*$).
+With these modifications, we run the BBVI algorithm and obtain the following plots for dataset 2 with 100 samples.
+The following results were obtained:
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/ELBO_convergence_dataset2_control_variates.png}
+  \caption{ELBO over iterations for dataset with 100 samples using BBVI with control variates.}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/expected_mu_tau_convergence_control_variates.png }
+  \caption{Expected value of $\mu$ and $\tau$ over iterations for dataset with 100 samples using BBVI with control variates.}
+\end{figure}
+\subsection*{Practice/implementation - 1.C.4}
+\subsubsection*{Question 2.2.14}
+The gamma distribution pdf is defined as
+\begin{equation*}
+  p(x|\alpha, \beta) = \frac{x^{\alpha-1}\beta^\alpha}{\Gamma(\alpha)}\text{exp}(-\beta x) = \text{exp}((\alpha-1)log(x) - \beta x - log(\Gamma(\alpha)) + \alpha log(\beta))
+\end{equation*}
+In, canonical exponential form we can use the following identifications:
+\begin{itemize}
+    \item $\boldsymbol{\eta}(\boldsymbol{\theta}) = [\alpha - 1, -\beta]$
+    \item $h(x) = 1$
+    \item $\boldsymbol{T}(x) = [\log x, x]$
+    \item $A(\boldsymbol{\eta}) = \log \Gamma(\eta_1 + 1) - (\eta_1 + 1)\log(-\eta_2)$
+\end{itemize}
+With this we can identify
+\begin{equation*}
+  \nabla_{\boldsymbol{\eta}} A(\boldsymbol{\eta}) = \begin{bmatrix}
+  \psi(\eta_1 + 1) - \log(-\eta_2) \\
+  -\frac{\eta_1 + 1}{\eta_2}
+  \end{bmatrix}
+\end{equation*}
+\subsubsection*{Question 2.2.15}
+Let $J$ be the Jacobian matrix of $\eta$ w.r.t $\theta = (\alpha, \beta)$.
+\begin{equation*}
+  J = \begin{bmatrix}
+  \frac{\partial \eta_1}{\partial \alpha} & \frac{\partial \eta_1}{\partial \beta} \\
+  \frac{\partial \eta_2}{\partial \alpha} & \frac{\partial \eta_2}{\partial \beta}
+  \end{bmatrix} = \begin{bmatrix}
+  1 & 0 \\
+  0 & -1
+  \end{bmatrix}
+\end{equation*}
+Furthermore, we have that $F(\eta)$ is the Fisher information matrix w.r.t the natural parameters $\eta$ and $F(\theta) = J^T F(\eta) J$.
+According to the Question description, we do not need to specify the explicit entries in $F$.
+Then we have that the natural gradient is given by:
+\begin{equation*}
+  \tilde{\nabla}_{\theta} \mathcal{L}(\theta) = F(\alpha, \beta)^{-1} \nabla_{\theta} \mathcal{L}(\theta) = J^T F(\eta)^{-1} J \nabla_{\theta} \mathcal{L}(\theta)
+\end{equation*}
+This follows from the fact that $J^{-1}=J$.
+\subsubsection*{Question 2.2.16}
+Now we compute the fisher information matrix $F(\theta)$ explicitly.
+We have that $F(\eta) = \nabla_\eta\nabla_\eta^TA(\eta)$.
+Thus,
+\begin{equation*}
+  F(\eta) = \begin{bmatrix}
+  \psi_1(\eta_1 + 1) & -\frac{1}{\eta_2} \\
+  -\frac{1}{\eta_2} & \frac{\eta_1 + 1}{\eta_2^2}
+  \end{bmatrix}
+\end{equation*}
+where $\psi_1$ is the trigamma function.
+Now we can compute $F(\theta)$ as:
+\begin{equation*}
+  F(\theta) = J^T F(\eta) J = \begin{bmatrix}
+  \psi_1(\alpha) & -\frac{1}{\beta} \\
+  -\frac{1}{\beta} & \frac{\alpha}{\beta^2}
+  \end{bmatrix}
+\end{equation*}
+\subsubsection*{Question 2.2.17}
+The negative log likelihood is given by:
+\begin{equation*}
+  \mathcal{L}(\alpha, \beta) = -\log p(x_{1:N}|\alpha, \beta) = -\sum_{i=1}^N \log p(x_i|\alpha, \beta)
+\end{equation*}
+Since we have samples from a Gamma distribution we can rewrite this as
+\begin{equation*}
+  \mathcal{L}(\alpha, \beta) = -\frac{1}{N}\sum_{n=1}^N \left( (\alpha - 1)\log x_n - \beta x_n - \log \Gamma(\alpha) + \alpha \log \beta \right)
+\end{equation*}
+The gradient of the negative log likelihood is then given by:
+\begin{equation*}
+  \nabla_{\alpha, \beta} \mathcal{L}(\alpha, \beta) = \begin{bmatrix}
+  -\frac{1}{N}\sum_{n=1}^N \left( \log x_n - \psi(\alpha) + \log \beta \right) \\
+  -\frac{1}{N}\sum_{n=1}^N \left( -x_n + \frac{\alpha}{\beta} \right)
+  \end{bmatrix}
+\end{equation*}
+\subsubsection*{Question 2.2.18}
+This question is primarily solved in a python notebook. We sample 1000 data points from $Gamma(\alpha^* = 3.0, \beta^*=2.0)$.
+Using this data, we implement both gradient descent and natural gradient descent to estimate $\alpha$ and $\beta$.
+We initilize both methods with a poor guess of $(\alpha, \beta) = (0.5,8)$ and ensure that $\alpha, \beta$ stay positive during optimizaiton.
+The code can be found in ngd\_vs\_gd\_1D\_gamma\_AD.ipynb notebook.
+\subsubsection*{Question 2.2.19}
+The results of running both gradient descent and natural gradient descent can be seen in the following plots.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/gamma_parameters_evolution.png}
+  \caption{Gradient descent: Estimated $\alpha$ and $\beta$ over iterations.}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/gamma_nll_evolution.png}
+  \caption{Natural gradient descent: Estimated $\alpha$ and $\beta$ over iterations.}
+\end{figure}
+Based on the plots, we can see that natural gradient descent converges faster to the true parameters $(\alpha^*, \beta^*) = (3.0, 2.0)$ compared to standard gradient descent.
+Furthermore, natural gradient descent does not reach a good approximation, even after 150 epochs.
+This is because natural gradient descent takes into account the geometry of the parameter space, leading to more efficient updates and avoids getting 'stuck'.
+\section*{B-level}
+\subsection*{1.B.1}
+\subsubsection*{Question 3.1.20}
+To approximate and reparameterize the categorical distribution we can use the Gumbel-Softmax distribution as an approximation.
+Let $g_i\sim Gumbel(0,1)$ for $i=1,...,K$, probabilities $\pi_1,...,\pi_K$ and temperature $\tau$. 
+A sample from the Gumbel-Softmax distribution is then given by:
+\begin{equation*}
+  y_i = \frac{\exp((\log(\pi_i) + g_i)/\tau)}{\sum_{j=1}^K \exp((\log(\pi_j) + g_j)/\tau)} \quad \text{for } i=1,...,K
+\end{equation*}
+This is the approximation of a one-hot encoded sample from a categorical distribution with class probabilities $\pi_1,...,\pi_K$. 
+As $\tau \rightarrow 0$, the Gumbel-Softmax distribution approaches the categorical distribution, and with $\tau \rightarrow \infty$, it approaches a uniform distribution. 
+Note that the approximation is continuous and differentiable w.r.t the parameters $\pi_i$, allowing for gradient-based optimization.
+\\
+\\
+For evaluation, we can use the argmax function to obtain a one-hot encoded sample from the Gumbel-Softmax distribution:
+\begin{equation*}
+  z = \text{one\_hot}(\text{argmax}_i(g_i + \log(\pi_i)))
+\end{equation*}
+The following code was implemented:
+\begin{minted}[fontsize=\small, linenos]{python}
+# Hint: approximate the Categorical distribution with the Gumbel-Softmax distribution
+def categorical_reparametrize(a, N, temp=0.1, eps=1e-20):  
+  # temp and eps are hyperparameters for Gumbel-Softmax
 
+  dist = Gumbel(0,1)
+  u = dist.sample((N, a.shape[0]))
+  samples = F.softmax((torch.log(a + eps) + u) / temp, dim=1)
+  
+  return samples # make sure that your implementation allows the gradient to backpropagate
+
+\end{minted}
+and the resulting output plot is shown below:
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/compare.png}
+  \caption{Output samples from the Gumbel-Softmax reparameterization.}
+\end{figure}
+\subsection*{1.B.2}
+\subsubsection*{Question 3.1.21}
+Using the reparameterization trick we can express a sample $z$ from a parametric distribution $q(z)$
+as a deterministic function of a random variable $\epsilon$, with some fixed sitribution and the parameters $\phi$
+of $q_\phi(z)$, ($z = t(\epsilon, \phi)$). The paper gives the example of $q_\phi$ being a diagonal gaussian, and for $\epsilon \sim N(0, \mathbb{I})$,
+$z = \mu + \sigma \epsilon$ gives a sample from $q_\phi(z) = N(z|\mu, \sigma^2)$. Under such a parametrization of $z$
+we can decompose the total derivative of the integrand of the estimator, w.r.t trainable parameters $\phi$ as:
+\begin{align}
+  \hat{\nabla}_{TD}(\epsilon, \phi) = \nabla_\phi\left[\log p(\boldsymbol{x|z})+ \log p(\boldsymbol{z})-\log q_\phi(\boldsymbol{z|x})\right]  = \\
+  \nabla_{\boldsymbol{z}}\left[\log p(\boldsymbol{x|z}) - \log q_\phi(\boldsymbol{z|x})\right] \nabla_\phi t(\epsilon, \phi) - \nabla_\phi \log q_\phi(\boldsymbol{z|x})
+\end{align}
+The reparameterized gradient estimator thus consists of two terms, the first is the path derivative and the second is the score function component.
+\subsubsection*{Question 3.1.22}
+\begin{equation*}
+  \mathbb{E}_{q_\phi(z|x)}[\nabla_\phi \log q_\phi(z|x)] = \int q_\phi(z|x) \nabla_\phi \log q_\phi(z|x) dz = \int \nabla_\phi q_\phi(z|x) dz = \nabla_\phi \int q_\phi(z|x) dz = \nabla_\phi 1 = 0
+\end{equation*}
+The expectation of the score function is zero because the integral of the probability density function over its entire support is equal to 1, and the gradient of a constant (1) w.r.t any parameter is zero.
+\newline
+\subsubsection*{Question 3.1.23}
+The authors propose that we can remove the score function term from the gradient estimate by setting $\phi'$ to the stop gradient.
+\subsubsection*{Question 3.1.24}
+The authors of the paper bring up the concept that if the score function is positively correlated with the remaining terms in the total derivative estimator,
+then the variance of the estimator can be reduced by subtracting the score function term. (The score function then acts as a control variate)
+\subsubsection*{Question 3.1.25}
+After extending the VAE implementation of 2E according to Algorithm 2, the following results were obtained
+for the ELBO over epochs on the MNIST dataset:
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/Stop_gradient_VAE.png}
+  \caption{ELBO over epochs on MNIST using path derivative estimator.}
+\end{figure}
+We can clearly see that the Stop-Gradient VAE outperforms the standard VAE implementation from 2E.
+It is much more stable, converges faster and to a better ELBO value.
+\section*{A-level}
+\subsection*{1.A.1 - Theory}
+\subsubsection*{Question 4.1.26}
+\subsection*{1.A.2 - Practice/implementation}
+\subsubsection*{Question 4.2.27}
 \end{document}
