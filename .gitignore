@@ -12,4 +12,4 @@
 
 # Ignore project-specific directories
 Papers/
-1AD/_minted-main/
+*_minted-main/
