@@ -38,7 +38,7 @@ We start by stating the definition of the Kullback-Leibler divergence:
 \begin{equation}
 KL(q(Z) \| p(Z|X)) = \mathbb{E}_{q(\boldsymbol{Z})}[\log( \frac{q(Z)}{p(Z|X)})] = \int q(Z) \log( \frac{q(Z)}{p(Z|X)}) dZ
 \end{equation}
-Now we separete the fraction inside the logarithm:
+Now we separate the fraction inside the logarithm:
 \begin{equation}
 KL(q(Z) \| p(Z|X)) = \int q(Z) \log( \frac{q(Z)p(X)}{p(X,Z)}) dZ = \int q(Z) (\log(q(Z)) - \log(p(Z|X)) dZ
 \end{equation}
@@ -90,7 +90,7 @@ and using the mean field assumption we can rewrite this as:
 \begin{equation*}
   \mathcal{L}(q) = \mathbb{E}_{q(Z)}[\log p(X, Z)] - \mathbb{E}_{q(Z)}[\log(q_1(Z_1)q_2(Z_2)q_3(Z_3))] 
 \end{equation*}
-and by separating the logarithm we get, and taking expectations over the relevant distribution ($z_i$ is independent of $z_j$ for $i \neq j$):
+and by separating the logarithm and taking expectations over the relevant distribution ($z_i$ is independent of $z_j$ for $i \neq j$) we get:
 \begin{equation*}
   \mathbb{E}_{q(Z)}[\log(q_1(Z_1)q_2(Z_2)q_3(Z_3))] = \mathbb{E}_{q_1(Z_1)}[\log(q_1(Z_1))] + \mathbb{E}_{q_2(Z_2)}[\log(q_2(Z_2))] + \mathbb{E}_{q_3(Z_3)}[\log(q_3(Z_3))]
 \end{equation*}
@@ -227,11 +227,7 @@ This gives the final expression for the Rao-Blackwellized partial gradient of th
 \subsection*{Practice/implementation - 1.C.3}
 \subsubsection*{Question 2.2.13}
 To implement BBVI with Control variates, but without Rao-Blackwellization, we reuse the code from 1.D.5 and add control variates.
-We begin by calculating $f(z^{(s)}) = \log p(X, z^{(s)}) - \log q(z^{(s)}|\Theta)$ for each sample $s$.
-Next, we compute the score function for each sample $s$ and each variational parameter $\theta_j$.
-Then, we calculate the optimal baselines ($a^*$) (control variates) for each parameter and set the gradient estimate using the baseline ($a^*$).
-With these modifications, we run the BBVI algorithm and obtain the following plots for dataset 2 with 100 samples.
-The following results were obtained:
+The implementation can be found in the notebook BBVI.ipynb. The results were as follows:
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{Plots/BBVI_Normal_Fit_CV_100_samples.png}
@@ -242,14 +238,14 @@ The following results were obtained:
 \subsubsection*{Question 2.2.14}
 The gamma distribution pdf is defined as
 \begin{equation*}
-  p(x|\alpha, \beta) = \frac{x^{\alpha-1}\beta^\alpha}{\Gamma(\alpha)}\text{exp}(-\beta x) = \text{exp}((\alpha-1)log(x) - \beta x - log(\Gamma(\alpha)) + \alpha log(\beta))
+  p(x|\alpha, \beta) = \frac{x^{\alpha-1}}{\Gamma(\alpha)\beta^\alpha}\text{exp}(- x/\beta) = \text{exp}((\alpha-1)log(x) - \frac{x}{\beta} - log(\Gamma(\alpha)) - \alpha log(\beta))
 \end{equation*}
-In, canonical exponential form we can use the following identifications:
+In, canonical exponential-family form we can use the following identifications:
 \begin{itemize}
-    \item $\boldsymbol{\eta}(\boldsymbol{\theta}) = [\alpha - 1, -\beta]$
+    \item $\boldsymbol{\eta}(\boldsymbol{\theta}) = [\alpha - 1, -1/\beta]$
     \item $h(x) = 1$
     \item $\boldsymbol{T}(x) = [\log x, x]$
-    \item $A(\boldsymbol{\eta}) = \log \Gamma(\eta_1 + 1) - (\eta_1 + 1)\log(-\eta_2)$
+    \item $A(\boldsymbol{\eta}) = \log \Gamma(\eta_1 + 1) + (\eta_1 + 1)\log(-1/\eta_2) = \log \Gamma(\eta_1 + 1) - (\eta_1 + 1)\log(-\eta_2)$
 \end{itemize}
 With this we can identify
 \begin{equation*}
@@ -266,12 +262,14 @@ Let $J$ be the Jacobian matrix of $\eta$ w.r.t $\theta = (\alpha, \beta)$.
   \frac{\partial \eta_2}{\partial \alpha} & \frac{\partial \eta_2}{\partial \beta}
   \end{bmatrix} = \begin{bmatrix}
   1 & 0 \\
-  0 & -1
+  0 & \frac{1}{\beta^2}
   \end{bmatrix}
 \end{equation*}
 Furthermore, we have that $F(\eta)$ is the Fisher information matrix w.r.t the natural parameters $\eta$ and $F(\theta) = J^T F(\eta) J$.
 According to the Question description, we do not need to specify the explicit entries in $F$.
-Then we have that the natural gradient is given by:
+\\
+\\
+Using this, we have that the natural gradient is given by:
 \begin{equation*}
   \tilde{\nabla}_{\theta} \mathcal{L}(\theta) = F(\alpha, \beta)^{-1} \nabla_{\theta} \mathcal{L}(\theta) = J^T F(\eta)^{-1} J \nabla_{\theta} \mathcal{L}(\theta)
 \end{equation*}
@@ -287,13 +285,26 @@ Thus,
   \end{bmatrix}
 \end{equation*}
 where $\psi_1$ is the trigamma function.
-Now we can compute $F(\theta)$ as:
+Now we can compute $F(\theta)$, and get the result:
 \begin{equation*}
   F(\theta) = J^T F(\eta) J = \begin{bmatrix}
+  1 & 0 \\
+  0 & \frac{1}{\beta^2}
+  \end{bmatrix}
+  \begin{bmatrix}
+    \psi_1(\alpha) & \beta \\
+    \beta & \alpha \beta^2
+  \end{bmatrix}
+  \begin{bmatrix}
+  1 & 0 \\
+  0 & \frac{1}{\beta^2}
+  \end{bmatrix}
+  = \begin{bmatrix}
   \psi_1(\alpha) & \frac{1}{\beta} \\
   \frac{1}{\beta} & \frac{\alpha}{\beta^2}
   \end{bmatrix}
 \end{equation*}
+
 \subsubsection*{Question 2.2.17}
 The average negative log likelihood is given by:
 \begin{equation*}
@@ -371,7 +382,7 @@ and the resulting output plot is shown below:
 \subsection*{1.B.2}
 \subsubsection*{Question 3.1.21}
 Using the reparameterization trick we can express a sample $z$ from a parametric distribution $q(z)$
-as a deterministic function of a random variable $\epsilon$, with some fixed sitribution and the parameters $\phi$
+as a deterministic function of a random variable $\epsilon$, with some fixed distribution and the parameters $\phi$
 of $q_\phi(z)$, ($z = t(\epsilon, \phi)$). The paper gives the example of $q_\phi$ being a diagonal gaussian, and for $\epsilon \sim N(0, \mathbb{I})$,
 $z = \mu + \sigma \epsilon$ gives a sample from $q_\phi(z) = N(z|\mu, \sigma^2)$. Under such a parametrization of $z$
 we can decompose the total derivative of the integrand of the estimator, w.r.t trainable parameters $\phi$ as:
@@ -402,6 +413,7 @@ for the ELBO over epochs on the MNIST dataset:
 We can see that both models preform similarly, with the path derivative estimator having a slight edge.
 This is expected as the score function term has an expectation of zero, meaning that removing it does not introduce bias.
 However, removing the score function term can reduce variance in the gradient estimates, leading to more stable and efficient training.
+The code used for implementing this can be found in the notebook 2E-VAE-HT25.ipynb
 \section*{A-level}
 \subsection*{1.A.1 - Theory}
 \subsubsection*{Question 4.1.26}
@@ -515,7 +527,7 @@ The results for the ELBO over epochs are shown in the following plot:
 %no plot yet, use placeholder
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{Plots/IWAE_comparison.png}
+  \includegraphics[width=0.7\textwidth]{Plots/IWAE_different_K.png}
   \caption{ELBO over epochs on MNIST using IWAE with different K values.}
 \end{figure}
 We can clearly see that increasing $K$ leads to better ELBO values.
@@ -587,7 +599,7 @@ class Model_IWAE(nn.Module):
         self.Encoder = Encoder
         self.Decoder = Decoder
 
-    #For IWAE, we need to sample K latent variables per input data point
+    #Sample K times
     def reparameterization(self, mean, std, K):
         # set z = mean + std * epsilon, where epsilon ~ N(0, I)
         batch_size, latent_dim = mean.size()
