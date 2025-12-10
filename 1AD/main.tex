@@ -23,7 +23,7 @@
 
 \title{DD2434 Advanced Machine Learning\\Assignment 1AD}
 \author{Reuben Gezang}
-\date{November 2025}
+\date{December 2025}
 
 \begin{document}
 
@@ -64,13 +64,12 @@ and with this we have shown that:
 \end{equation}
 concluding the proof.
 \subsubsection*{Question 1.1.2}
-KOLLA ÖVER IGEN
 In this question we are to describe (in one sentence) how the choice of variational family $q(Z)$ affects
 \begin{itemize}
   \item (i) The tightness of the ELBO
   \item (ii) The accuracy of the posterior approximation
 \end{itemize}
-(i) A more expressive variational family can lead to a tighter ELBO as it can better approximate the true posterior, reducing the KL divergence term.\\
+(i) A more expressive variational family can lead to a tighter ELBO as it can better approximate (and better match) the true posterior, reducing the KL divergence term.\\
 \\
 (ii) The choice of variational family directly impacts the accuracy of the posterior approximation, as a limited family may not capture the true posterior's complexity, leading to a less accurate approximation.
 \subsection*{Question 1.D.2}
@@ -143,7 +142,12 @@ Finally we state the score functions of the variational distributions. Let $$\om
   \frac{a_N}{b_N} - \tau
   \end{bmatrix}
 \end{equation}
-where $\psi$ is the digamma function.
+where $\psi$ is the digamma function. Note that we can also express the score function w.r.t $\lambda_N$ as using the variance/standard deviation.
+We have that the relation between variance and precision is given by $\sigma^2 = \frac{1}{\lambda_N}$, meaning that $d\lambda = -\frac{2}{\sigma^3}d\sigma$.
+Then we have that the score function w.r.t $\sigma$ (standard deviation) is given by
+\begin{equation*}
+  \frac{\partial \log q(\mu, \tau)}{\partial \sigma} = \frac{\partial \log q(\mu, \tau)}{\partial \lambda_N} \frac{\partial \lambda_N}{\partial \sigma} = \left( \frac{1}{2\lambda_N} - \frac{1}{2}(\mu - \mu_N)^2 \right) \left( -\frac{2}{\sigma^3} \right) = -\frac{1}{\sigma} + \frac{(\mu - \mu_N)^2}{\sigma^3}
+\end{equation*}
 \subsubsection*{1.2.5}
 In this exercise we implement Algorithm 1 of the BBVI paper [Ranganath et al., 2014].
 We reuse the data sampling script from 1.E.3 and prior parameters, meaning that
@@ -157,13 +161,8 @@ I have chosen to use the Robbins-monro sequence to be $\rho_t = \frac{1}{1000 + 
 the expected value of $\mu$ and $\tau$ over iterations for dataset 2 with 100 samples.
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{Plots/ELBO_convergence_dataset2.png}
+  \includegraphics[width=0.7\textwidth]{Plots/BBVI_Normal_Fit_100_samples.png}
   \caption{ELBO over iterations for dataset with 100 samples.}
-\end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{Plots/expected_mu_tau_convergence.png }
-  \caption{Expected value of $\mu$ and $\tau$ over iterations for dataset with 100 samples.}
 \end{figure}
 \section*{C-level}
 \subsection*{Theory 1.C.1}
@@ -235,14 +234,10 @@ With these modifications, we run the BBVI algorithm and obtain the following plo
 The following results were obtained:
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{Plots/ELBO_convergence_dataset2_control_variates.png}
+  \includegraphics[width=0.7\textwidth]{Plots/BBVI_Normal_Fit_CV_100_samples.png}
   \caption{ELBO over iterations for dataset with 100 samples using BBVI with control variates.}
 \end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\textwidth]{Plots/expected_mu_tau_convergence_control_variates.png }
-  \caption{Expected value of $\mu$ and $\tau$ over iterations for dataset with 100 samples using BBVI with control variates.}
-\end{figure}
+
 \subsection*{Practice/implementation - 1.C.4}
 \subsubsection*{Question 2.2.14}
 The gamma distribution pdf is defined as
@@ -295,15 +290,16 @@ where $\psi_1$ is the trigamma function.
 Now we can compute $F(\theta)$ as:
 \begin{equation*}
   F(\theta) = J^T F(\eta) J = \begin{bmatrix}
-  \psi_1(\alpha) & -\frac{1}{\beta} \\
-  -\frac{1}{\beta} & \frac{\alpha}{\beta^2}
+  \psi_1(\alpha) & \frac{1}{\beta} \\
+  \frac{1}{\beta} & \frac{\alpha}{\beta^2}
   \end{bmatrix}
 \end{equation*}
 \subsubsection*{Question 2.2.17}
-The negative log likelihood is given by:
+The average negative log likelihood is given by:
 \begin{equation*}
-  \mathcal{L}(\alpha, \beta) = -\log p(x_{1:N}|\alpha, \beta) = -\sum_{i=1}^N \log p(x_i|\alpha, \beta)
+  \mathcal{L}(\alpha, \beta) = - \frac{1}{N}\log p(x_{1:N}|\alpha, \beta) = -\frac{1}{N}\sum_{i=1}^N \log p(x_i|\alpha, \beta)
 \end{equation*}
+(All samples are i.i.d).
 Since we have samples from a Gamma distribution we can rewrite this as
 \begin{equation*}
   \mathcal{L}(\alpha, \beta) = -\frac{1}{N}\sum_{n=1}^N \left( (\alpha - 1)\log x_n - \beta x_n - \log \Gamma(\alpha) + \alpha \log \beta \right)
@@ -333,7 +329,7 @@ The results of running both gradient descent and natural gradient descent can be
   \caption{Natural gradient descent: Estimated $\alpha$ and $\beta$ over iterations.}
 \end{figure}
 Based on the plots, we can see that natural gradient descent converges faster to the true parameters $(\alpha^*, \beta^*) = (3.0, 2.0)$ compared to standard gradient descent.
-Furthermore, natural gradient descent does not reach a good approximation, even after 150 epochs.
+Furthermore, natural gradient descent does not reach a good approximation, after 150 epochs but is in need of more epochs.
 This is because natural gradient descent takes into account the geometry of the parameter space, leading to more efficient updates and avoids getting 'stuck'.
 \section*{B-level}
 \subsection*{1.B.1}
@@ -403,11 +399,208 @@ for the ELBO over epochs on the MNIST dataset:
   \includegraphics[width=0.7\textwidth]{Plots/Stop_gradient_VAE.png}
   \caption{ELBO over epochs on MNIST using path derivative estimator.}
 \end{figure}
-We can clearly see that the Stop-Gradient VAE outperforms the standard VAE implementation from 2E.
-It is much more stable, converges faster and to a better ELBO value.
+We can see that both models preform similarly, with the path derivative estimator having a slight edge.
+This is expected as the score function term has an expectation of zero, meaning that removing it does not introduce bias.
+However, removing the score function term can reduce variance in the gradient estimates, leading to more stable and efficient training.
 \section*{A-level}
 \subsection*{1.A.1 - Theory}
 \subsubsection*{Question 4.1.26}
-\subsection*{1.A.2 - Practice/implementation}
+From the paper Denoising Diffusion Probabilistic Models we have that the left most side of equation $3$ is
+\begin{equation*}
+  \mathbb{E} \left[ -\log p_\theta(\mathbf{x}_0) \right] \le \mathbb{E}_q \left[ -\log \frac{p_\theta(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T}|\mathbf{x}_0)} \right] := L
+\end{equation*}
+Where the left hand side is the expecation taken over the data distribution and the right hand side is the ELBO (expectation taken over whole mean field assumption $q$).
+Following the derivation in the paper we can rewrite this as:
+\begin{align*}
+  L = \mathbb{E}_q \left[ -\log p(\mathbf{x}_T) - \sum_{t \ge 1} \log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_t|\mathbf{x}_{t-1})} \right]\\
+   = \mathbb{E}_q \left[ -\log p(\mathbf{x}_T) - \sum_{t > 1} \log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_t|\mathbf{x}_{t-1}, \mathbf{x}_0)} - \log \frac{q(\mathbf{x}_t|\mathbf{x}_{t-1}, \mathbf{x}_0)}{q(\mathbf{x}_t|\mathbf{x}_{t-1})} \right]\\
+   = \mathbb{E}_q \left[ -\log p(\mathbf{x}_T) - \sum_{t > 1} \log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_{t-1}|\mathbf{x}_{t}, \mathbf{x}_0)} \cdot \frac{q(\mathbf{x}_{t-1}|\mathbf{x}_0)}{q(\mathbf{x}_{t}| \mathbf{x}_0)} - \log \frac{p_\theta(\mathbf{x}_{0}|\mathbf{x}_1)}{q(\mathbf{x}_{1}|\mathbf{x}_0)}\right]\\
+   = \mathbb{E}_q \left[ -\log \frac{p(\mathbf{x}_T)}{q(\mathbf{x}_T|\mathbf{x}_0)} - \sum_{t > 1}\log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_{t-1}|\mathbf{x}_{t}, \mathbf{x}_0)} - \log p_\theta(\mathbf{x}_0|\mathbf{x}_1)\right] \\
+   = \mathbb{E}_q \left[ D_{KL}(q(\mathbf{x}_T|\mathbf{x}_0) || p(\mathbf{x}_T)) + \sum_{t > 1} D_{KL}(q(\mathbf{x}_{t-1}|\mathbf{x}_t, \mathbf{x}_0) || p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)) - \log p_\theta(\mathbf{x}_0|\mathbf{x}_1) \right]
+\end{align*}
+The expectations are all taken over the full distribution $q(\mathbf{x}_{0:T})$.
+The final step, to arrive at the final equation comes from separating the terms in the expectations.
+\begin{align*}
+  L = \mathbb{E}_q \left[ D_{KL}(q(\mathbf{x}_T|\mathbf{x}_0) || p(\mathbf{x}_T))\right] + \sum_{t > 1} \mathbb{E}_q \left[ D_{KL}(q(\mathbf{x}_{t-1}|\mathbf{x}_t, \mathbf{x}_0) || p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t))\right] - \mathbb{E}_q \left[ \log p_\theta(\mathbf{x}_0|\mathbf{x}_1) \right]
+\end{align*}
+In this final expression we can identify the three terms as $L_T$, $L_{t-1}$ and $L_0$ respectively.
+\begin{equation*}
+  L_T = D_{KL}(q(\mathbf{x}_T|\mathbf{x}_0) || p(\mathbf{x}_T)) \rightarrow (1) = \mathbb{E}_q \left[ L_T \right]
+\end{equation*}
+\begin{equation*}
+  L_{t-1} = D_{KL}(q(\mathbf{x}_{t-1}|\mathbf{x}_t, \mathbf{x}_0) || p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)) \rightarrow (2) = \mathbb{E}_q \left[ L_{t-1} \right]
+\end{equation*}
+\begin{equation*}
+  L_0 = \log p_\theta(\mathbf{x}_0|\mathbf{x}_1) \rightarrow (3) = \mathbb{E}_q \left[ L_0 \right]
+\end{equation*}
+By inspecting the final expectations we find what distributions the expectations are taken over.
+We have that
+\begin{equation*}
+  (1) = \mathbb{E}_q \left[ L_T \right] = \mathbb{E}_{q(\mathbf{x}_0)} \left[ D_{KL}(q(\mathbf{x}_T|\mathbf{x}_0) || p(\mathbf{x}_T))\right]
+\end{equation*}
+Meaning that we only take the expectation over $\mathbf{x}_0$. This is true since the Kullback-leibler divergence integrates out $\mathbf{x}_T$.
+\begin{equation*}
+  (2) = \mathbb{E}_q \left[ L_{t-1} \right] = \mathbb{E}_{q(\mathbf{x}_t, \mathbf{x}_0)} \left[ D_{KL}(q(\mathbf{x}_{t-1}|\mathbf{x}_t, \mathbf{x}_0) || p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t))\right]
+\end{equation*}
+Showing that we take the expectation over $\mathbf{x}_t$ and $\mathbf{x}_0$. This is once again true since the Kullback-leibler divergence integrates out $\mathbf{x}_{t-1}$.
+Finally, we have that
+\begin{equation*}
+  (3) = \mathbb{E}_q \left[ L_0 \right] = \mathbb{E}_{q(\mathbf{x}_1, \mathbf{x}_0)} \left[ \log p_\theta(\mathbf{x}_0|\mathbf{x}_1) \right]
+\end{equation*}
+Taking the expectation over $\mathbf{x}_1$ and $\mathbf{x}_0$. Thus we have specified the random variables of the expectations.
+\subsection*{1.A.2 - Importance Weighted Autoencoder}
 \subsubsection*{Question 4.2.27}
+For this question we extend the VAE implementation from 2E to the IWAE model.
+To implement this, the loss function is modified to use the IWELBO with $K$ samples.
+The modified loss function is as follows:
+\begin{equation*}
+  \mathcal{L}_K = \mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \log\left( \frac{1}{K} \sum_{k=1}^{K} \frac{p_\theta(X, Z_k)}{q_\phi(Z_k|X)}\right)\right]
+\end{equation*}
+Let $W_k = \frac{p_\theta(X, Z_k)}{q_\phi(Z_k|X)}$. The loss function can then be rewritten as:
+\begin{equation*}
+  \mathcal{L}_K = \mathbb{E}_{Z_{1}, \ldots, Z_{K}}\left[\ \log\left( \frac{1}{K} \sum_{k=1}^{K} W_k\right)\right]
+\end{equation*}
+In practice, we approximate the expectation using Monte Carlo sampling.
+\\
+\\
+The sampling also changes, and we now sample $K$ latent variables.
+This is done by modifying the reparametrization function to sample $K$ times from the latent distribution.
+The following code snippets show the modified parts of the VAE implementation:
+The reparametrization function:
+\begin{minted}[fontsize=\small, linenos]{python}
+def reparameterization(self, mean, std, K):
+    # set z = mean + std * epsilon, where epsilon ~ N(0, I)
+    batch_size, latent_dim = mean.size()
+    eps = torch.randn(batch_size, K, latent_dim).to(device)  # shape: (batch_size, K, latent_dim)
+    z = mean.unsqueeze(1) + std.unsqueeze(1) * eps  # shape: (batch_size, K, latent_dim)
+    return z
+\end{minted}
+The loss function:
+\begin{minted}[fontsize=\small, linenos]{python}
+def loss_IWAE(x, theta, mean, log_var, z):
+    # theta: (batch, K, x_dim), z: (batch, K, latent_dim)
+    #Expanded x to match theta's shape
+    x_expanded = x.unsqueeze(1).expand_as(theta)
+    #Calculate log p(x|z)
+    log_px_z= -nn.functional.binary_cross_entropy(theta, x_expanded,
+      reduction='none').sum(dim=2)
+
+    # Parameters for calculating log probabilities
+    log2pi = float(np.log(2 * np.pi))
+    #Expand mean and log_var to match z's shape
+    mean_exp = mean.unsqueeze(1)
+    log_var_exp = log_var.unsqueeze(1)
+
+    #prior p(z) ~ N(0, I)
+    log_pz = -0.5 * (z.pow(2) + log2pi).sum(dim=2)
+
+    #posterior q(z|x) ~ N(mean, var)
+    log_qz_x = -0.5 * ((((z - mean_exp) ** 2) / log_var_exp.exp()) +
+     log_var_exp + log2pi).sum(dim=2)
+
+    log_w = log_px_z + log_pz - log_qz_x
+    
+    # Loss for each batch element
+    log_w_mean = torch.logsumexp(log_w, dim=1) - np.log(log_w.size(1))
+
+    #mean over batch:
+    loss = -log_w_mean.mean()
+    return loss
+\end{minted}
+\subsubsection*{Question 4.2.28}
+Following the experimental setup from 2E (section 5.1) we use the 1 stochastic layer model on MNIST.
+We train the regular VAE model, together with the IWAE model with $K = 1$, $K=5$ and $K=50$. 
+For feasible runtime, $\text{numer of epochs} = 20$ and learning rate $= 1e-3$.
+The results for the ELBO over epochs are shown in the following plot:
+%no plot yet, use placeholder
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\textwidth]{Plots/IWAE_comparison.png}
+  \caption{ELBO over epochs on MNIST using IWAE with different K values.}
+\end{figure}
+We can clearly see that increasing $K$ leads to better ELBO values.
+This is inline with the theory, since the IWELBO is a tighter bound.
+For the model architecure, I left the encoder and decoder the same as in 2E.
+\begin{minted}{python}
+class Encoder(nn.Module):
+  # encoder outputs the parameters of variational distribution "q"
+  def __init__(self, input_dim, hidden_dim, latent_dim):
+      super(Encoder, self).__init__()
+
+      self.FC_enc1 = nn.Linear(input_dim, hidden_dim) # FC = fully connected layer
+      self.FC_enc2 = nn.Linear(hidden_dim, hidden_dim)
+      self.FC_mean = nn.Linear(hidden_dim, latent_dim)
+      self.FC_std  = nn.Linear (hidden_dim, latent_dim)
+
+      self.LeakyReLU = nn.LeakyReLU(0.2)
+
+      self.training = True
+
+  def forward(self, x):
+      h_1     = self.LeakyReLU(self.FC_enc1(x))
+      h_2     = self.LeakyReLU(self.FC_enc2(h_1))
+      mu    = self.FC_mean(h_2)  # mean / location
+      log_var = self.FC_std(h_2)   # log variance
+
+      return mu, log_var
+
+class Decoder(nn.Module):
+    # decoder generates the success parameter of each pixel
+    def __init__(self, latent_dim, hidden_dim, output_dim):
+        super(Decoder, self).__init__()
+        self.FC_dec1   = nn.Linear(latent_dim, hidden_dim)
+        self.FC_dec2   = nn.Linear(hidden_dim, hidden_dim)
+        self.FC_output = nn.Linear(hidden_dim, output_dim)
+
+        self.LeakyReLU = nn.LeakyReLU(0.2)
+
+    def forward(self, z):
+        h_out_1  = self.LeakyReLU(self.FC_dec1(z))
+        h_out_2  = self.LeakyReLU(self.FC_dec2(h_out_1))
+
+        theta = torch.sigmoid(self.FC_output(h_out_2))
+        return theta
+\end{minted}
+Then, I changed the model containing the reparameterization to the following:
+\begin{minted}{python}
+class Model(nn.Module):
+    def __init__(self, Encoder, Decoder):
+        super(Model, self).__init__()
+        self.Encoder = Encoder
+        self.Decoder = Decoder
+
+    def reparameterization(self, mean, std):
+        # set z = mean + std * epsilon, where epsilon ~ N(0, I)
+        z = mean + std * torch.randn_like(std)
+        return z
+
+    def forward(self, x):
+        mean, log_var = self.Encoder(x)
+        std = torch.exp(0.5 * log_var)
+        z = self.reparameterization(mean, std)
+        theta = self.Decoder(z)
+        return theta, mean, log_var, z
+    
+class Model_IWAE(nn.Module):
+    def __init__(self, Encoder, Decoder):
+        super(Model_IWAE, self).__init__()
+        self.Encoder = Encoder
+        self.Decoder = Decoder
+
+    #For IWAE, we need to sample K latent variables per input data point
+    def reparameterization(self, mean, std, K):
+        # set z = mean + std * epsilon, where epsilon ~ N(0, I)
+        batch_size, latent_dim = mean.size()
+        eps = torch.randn(batch_size, K, latent_dim).to(device)  # shape: (batch_size, K, latent_dim)
+        z = mean.unsqueeze(1) + std.unsqueeze(1) * eps  # shape: (batch_size, K, latent_dim)
+        return z
+
+    def forward(self, x, K):
+        mean, log_var = self.Encoder(x)
+        std = torch.exp(0.5 * log_var)
+        z = self.reparameterization(mean, std, K)  # shape: (batch_size, K, latent_dim)
+        theta = self.Decoder(z.view(-1, z.size(-1)))  # reshape z to (batch_size * K, latent_dim)
+        theta = theta.view(x.size(0), K, -1)  # reshape theta to (batch_size, K, x_dim)
+        return theta, mean, log_var, z
+\end{minted}
 \end{document}
