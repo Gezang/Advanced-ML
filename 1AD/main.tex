@@ -157,8 +157,8 @@ We reuse the data sampling script from 1.E.3 and prior parameters, meaning that
   \item $a_0 = 1.0$
   \item $b_0 = 2.0$
 \end{itemize}
-I have chosen to use the Robbins-monro sequence to be $\rho_t = \frac{1}{1000 + t}$ and the following plots show the ELBO over iterations and 
-the expected value of $\mu$ and $\tau$ over iterations for dataset 2 with 100 samples.
+The following plots show the ELBO over iterations and the expected value of $\mu$ and $\tau$
+over iterations for dataset 2 with 100 samples.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{Plots/BBVI_Normal_Fit_100_samples.png}
@@ -615,4 +615,14 @@ class Model_IWAE(nn.Module):
         theta = theta.view(x.size(0), K, -1)  # reshape theta to (batch_size, K, x_dim)
         return theta, mean, log_var, z
 \end{minted}
+\section*{Appendix}
+(For a better overview of the code, please refer to the respective notebooks and scripts)
+\subsection*{Code - BBVI.ipynb}
+\inputminted{python}{Code/BBVI.py}
+\subsection*{Code - 2E-VAE-HT25.ipynb}
+\inputminted{python}{Code/2E-VAE-HT25.py}
+\subsection*{Code - ngd\_vs\_gd\_1D\_gamma\_AD.ipynb}
+\inputminted{python}{Code/ngd_vs_gd_1D_gamma_AD.py}
+\subsection*{Code - 1AD-B1.py}
+\inputminted{python}{Code/1AD-B1.py}
 \end{document}
