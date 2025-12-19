@@ -387,8 +387,9 @@ of $q_\phi(z)$, ($z = t(\epsilon, \phi)$). The paper gives the example of $q_\ph
 $z = \mu + \sigma \epsilon$ gives a sample from $q_\phi(z) = N(z|\mu, \sigma^2)$. Under such a parametrization of $z$
 we can decompose the total derivative of the integrand of the estimator, w.r.t trainable parameters $\phi$ as:
 \begin{align}
-  \hat{\nabla}_{TD}(\epsilon, \phi) = \nabla_\phi\left[\log p(\boldsymbol{x|z})+ \log p(\boldsymbol{z})-\log q_\phi(\boldsymbol{z|x})\right]  = \\
-  \nabla_{\boldsymbol{z}}\left[\log p(\boldsymbol{x|z}) - \log q_\phi(\boldsymbol{z|x})\right] \nabla_\phi t(\epsilon, \phi) - \nabla_\phi \log q_\phi(\boldsymbol{z|x})
+  \hat{\nabla}_{TD}(\epsilon, \phi) =  \nabla_\phi\left[\log p(\boldsymbol{x|z})+ \log p(\boldsymbol{z})-\log q_\phi(\boldsymbol{z|x})\right] = \\
+  \nabla_\phi\left[\log p(\boldsymbol{z|x})+ \log p(\boldsymbol{x})-\log q_\phi(\boldsymbol{z|x})\right] = \\
+  \nabla_{\boldsymbol{z}}\left[\log p(\boldsymbol{z|x}) - \log q_\phi(\boldsymbol{z|x})\right] \nabla_\phi t(\epsilon, \phi) - \nabla_\phi \log q_\phi(\boldsymbol{z|x})
 \end{align}
 The reparameterized gradient estimator thus consists of two terms, the first is the path derivative and the second is the score function component.
 \subsubsection*{Question 3.1.22}
@@ -425,7 +426,7 @@ Where the left hand side is the expecation taken over the data distribution and 
 Following the derivation in the paper we can rewrite this as:
 \begin{align*}
   L = \mathbb{E}_q \left[ -\log p(\mathbf{x}_T) - \sum_{t \ge 1} \log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_t|\mathbf{x}_{t-1})} \right]\\
-   = \mathbb{E}_q \left[ -\log p(\mathbf{x}_T) - \sum_{t > 1} \log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_t|\mathbf{x}_{t-1}, \mathbf{x}_0)} - \log \frac{q(\mathbf{x}_t|\mathbf{x}_{t-1}, \mathbf{x}_0)}{q(\mathbf{x}_t|\mathbf{x}_{t-1})} \right]\\
+   = \mathbb{E}_q \left[ -\log p(\mathbf{x}_T) - \sum_{t > 1} \log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_t|\mathbf{x}_{t-1})} - \log \frac{p_{\theta}(\mathbf{x}_0|\mathbf{x}_{1})}{q(\mathbf{x}_1|\mathbf{x}_{0})} \right]\\
    = \mathbb{E}_q \left[ -\log p(\mathbf{x}_T) - \sum_{t > 1} \log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_{t-1}|\mathbf{x}_{t}, \mathbf{x}_0)} \cdot \frac{q(\mathbf{x}_{t-1}|\mathbf{x}_0)}{q(\mathbf{x}_{t}| \mathbf{x}_0)} - \log \frac{p_\theta(\mathbf{x}_{0}|\mathbf{x}_1)}{q(\mathbf{x}_{1}|\mathbf{x}_0)}\right]\\
    = \mathbb{E}_q \left[ -\log \frac{p(\mathbf{x}_T)}{q(\mathbf{x}_T|\mathbf{x}_0)} - \sum_{t > 1}\log \frac{p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)}{q(\mathbf{x}_{t-1}|\mathbf{x}_{t}, \mathbf{x}_0)} - \log p_\theta(\mathbf{x}_0|\mathbf{x}_1)\right] \\
    = \mathbb{E}_q \left[ D_{KL}(q(\mathbf{x}_T|\mathbf{x}_0) || p(\mathbf{x}_T)) + \sum_{t > 1} D_{KL}(q(\mathbf{x}_{t-1}|\mathbf{x}_t, \mathbf{x}_0) || p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)) - \log p_\theta(\mathbf{x}_0|\mathbf{x}_1) \right]
@@ -532,7 +533,8 @@ The results for the ELBO over epochs are shown in the following plot:
 \end{figure}
 We can clearly see that increasing $K$ leads to better ELBO values.
 This is inline with the theory, since the IWELBO is a tighter bound.
-For the model architecure, I left the encoder and decoder the same as in 2E.
+For the model architecure, I left the encoder and decoder the same as in 2E, but 
+created a new model for IWAE. The code for the model architecture is as follows:
 \begin{minted}{python}
 class Encoder(nn.Module):
   # encoder outputs the parameters of variational distribution "q"
@@ -573,7 +575,6 @@ class Decoder(nn.Module):
         theta = torch.sigmoid(self.FC_output(h_out_2))
         return theta
 \end{minted}
-Then, I changed the model containing the reparameterization to the following:
 \begin{minted}{python}
 class Model(nn.Module):
     def __init__(self, Encoder, Decoder):
